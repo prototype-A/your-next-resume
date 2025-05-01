@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@plugin "../plugins/hero.ts";
+@source "../../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
+@custom-variant dark (&:is(.dark *));
 
 :root {
   --background: #ffffff;
@@ -23,4 +26,15 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+main {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  max-height: 100vh;
+  max-width: 100vw;
+  min-height: 100vh;
+  min-width: 100vw;
+  overflow-x: hidden;
 }
