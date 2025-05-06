@@ -1,0 +1,29 @@
+:root {
+  --a4-aspect: 210 / 297;
+  --a4-height: 297mm;
+  --a4-width: 210mm;
+  --letter-aspect: 215.9 / 279.4;
+  --letter-height: 279.4mm;
+  --letter-width: 215.9mm;
+}
+
+.button {
+  background-color: #888;
+  width: 100%;
+}
+
+.page {
+  background-color: #fff;
+}
+
+.page-a4 {
+  aspect-ratio: var(--a4-aspect);
+  max-height: var(--a4-height);
+  max-width: var(--a4-width);
+}
+
+.page-letter {
+  aspect-ratio: var(--letter-aspect);
+  max-height: var(--letter-height);
+  max-width: var(--letter-width);
+}
