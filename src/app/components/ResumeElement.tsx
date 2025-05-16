@@ -1,12 +1,34 @@
 import { useContext, useEffect, useState } from "react";
-import useMousePosition from "../hooks/useMousePosition";
+import { FlexRowDiv } from "./Containers";
 import type { Coordinates, Dimensions, Ref, ResumeItem, SetStateFn } from "./Types";
-import { DEFAULT_COORDINATES } from "./Types";
-import { clamp } from "../utils/NumberUtils";
-import useEventListener from "../hooks/useEventListener";
+import { DEFAULT_COORDINATES, ResumeItemTextContentTypes, ResumeItemTypes } from "./Types";
 import { ContextMenuContext } from "../contexts/ContextMenuContext";
+import { EditorContext } from "../contexts/EditorContext";
+import useEventListener from "../hooks/useEventListener";
+import useMousePosition from "../hooks/useMousePosition";
+import { clamp } from "../utils/NumberUtils";
+import { optionalPrefix, optionalSuffix } from "../utils/StringUtils";
+import "../styles/globals.css";
 import "../styles/page.css";
 import "../styles/resume-element.css";
+
+type DateRangeProps = {
+  endDate?: string,
+  startDate: string
+};
+
+const DateRange = ({
+  endDate = "",
+  startDate
+}: DateRangeProps): React.ReactNode => {
+  return (
+    <div>
+      { `${optionalSuffix(startDate, " - ")}
+        ${endDate}`
+      }
+    </div>
+  );
+}
 
 type ElementResizeProps = {
   mouseDelta: Coordinates,
@@ -28,6 +50,13 @@ function ElementHandles({
   const [ resizing, setResizing ] = useState<boolean>(false);
   const [ resizeDir, setResizeDir ] = useState<Direction>();
 
+  /**
+   * Allow element to be resized when "mousedown" event is
+   * triggered on a resize handle.
+   * 
+   * @param event - "mousedown" event data.
+   * @param direction - The direction to resize.
+   */
   function startResizing(event: React.MouseEvent, direction: Direction): void {
     // Prevent moving element when resizing
     event.preventDefault();
@@ -107,10 +136,7 @@ function ElementHandles({
 
   return (
     <div
-      className={ "absolute h-full w-full " + (show
-        ? "cursor-move outline-2 visible"
-        : "cursor-auto hidden outline-none"
-      )}
+      className={ "handles " + (show ? "selected" : "") }
     >
       <div
         // Top-middle rotate
@@ -191,7 +217,6 @@ export default function ResumeElement({
   updateItem
 }: ResumeElementProps): React.ReactNode {
 
-  const [ selected, setSelected ] = useState<boolean>(false);
   const [ dragging, setDragging ] = useState<boolean>(false);
   const [ position, setPosition ] = useState<Coordinates>({
     x: clamp(item.position.x, 0, dragBounds?.current?.clientWidth ?? 0, item.size.width),
@@ -203,23 +228,33 @@ export default function ResumeElement({
   const [ size, setSize ] = useState<Dimensions>(item.size);
   const [ , mouseDelta ] = useMousePosition();
   const showContextMenu = useContext(ContextMenuContext);
+  const [ , editingItem, editItem, ] = useContext(EditorContext);
 
-  function startDragging(): void {
-    setSelected(true);
-    setDragging(true);
-  }
-
-  function stopDragging(): void {
-    setDragging(false);
-    setBoundCorrection(DEFAULT_COORDINATES);
+  function listItems(list: string[]): React.ReactNode {
+    return <ul className="list-inside">
+      { list.map((listItem: string, index: number): React.ReactNode =>
+        <li
+          className="list-item list-disc"
+          key={ index }
+        >
+          { listItem }
+        </li>
+      )}
+    </ul>
   }
 
   // Stop dragging if mousedown released outside of element
-  useEventListener("mouseup", stopDragging);
+  useEventListener("mouseup", (): void => {
+    setDragging(false);
+    setBoundCorrection(DEFAULT_COORDINATES);
+  });
 
   // Handle dragging element
   useEffect((): void => {
     if (dragging) {
+      // Hide editor while dragging element
+      editItem(null);
+
       const X_BOUND: number = dragBounds?.current?.clientWidth ?? 0;
       const Y_BOUND: number = dragBounds?.current?.clientHeight ?? 0;
       
@@ -270,21 +305,29 @@ export default function ResumeElement({
   // Update item after moving or resizing
   useEffect((): void => {
     updateItem({
-      id: item.id,
+      ...item,
       position: position,
-      size: size,
-      type: item.type
+      size: size
     });
   }, [ position, size ]);
 
   return (
     <div
-      className="absolute"
+      className="resume-element text"
+      key={ item.id }
+      onClick={(event: React.MouseEvent): void => {
+        // Do not click on anything else underneath the item
+        event.stopPropagation();
+
+        // Show editor when clicking or after dragging item
+        editItem(item, updateItem);
+      }}
       onContextMenu={(event: React.MouseEvent): void => {
         // Do not display the browser's or any other context menu
         event.preventDefault();
         event.stopPropagation();
 
+        // Display context menu when right-clicking this element
         showContextMenu({
           x: event.pageX,
           y: event.pageY
@@ -295,16 +338,13 @@ export default function ResumeElement({
           }
         ]);
       }}
-      onMouseDown={ startDragging }
+      onMouseDown={ (): void => setDragging(true) }
       style={{
         aspectRatio: size.width / size.height,
         height: size.height,
         maxHeight: size.height,
         maxWidth: size.width,
         left: position.x,
-        outline: (selected)
-          ? "0px"
-          : "1px solid #aaa",
         top: position.y,
         width: size.width
       }}
@@ -314,8 +354,70 @@ export default function ResumeElement({
         resizeBounds={ dragBounds }
         setPosition={ setPosition }
         setSize={ setSize }
-        show={ selected }
+        show={ item.id === editingItem?.id }
       />
+      { item.type === ResumeItemTypes[0] &&
+        // Type: Education
+        <div>
+          <div>{ item.content.institution }</div>
+          <div>{ item.content.location }</div>
+          <div>{ item.content.degree }</div>
+          <FlexRowDiv>
+            <div>{ optionalPrefix("Major: ", item.content.major) }</div>
+            <div>{ optionalPrefix("Minor: ", item.content.minor) }</div>
+          </FlexRowDiv>
+          <DateRange
+            endDate={ item.content.endDate }
+            startDate={ item.content.startDate }
+          />
+          <div>
+            { item.content.gpa > 0
+              ? optionalPrefix("GPA: ", item.content.gpa.toString())
+              : ""
+            }
+          </div>
+          <div>{ listItems(item.content.body) }</div>
+        </div>
+      }
+      { item.type === ResumeItemTypes[1] &&
+        // Type: Employment
+        <div>
+          <div>{ item.content.position }</div>
+          <div>{ item.content.company }</div>
+          <div>{ item.content.location }</div>
+          <DateRange
+            endDate={ item.content.endDate }
+            startDate={ item.content.startDate }
+          />
+          <div>{ listItems(item.content.body) }</div>
+        </div>
+      }
+      { item.type === ResumeItemTypes[2] &&
+        // Type: Text
+        <div>
+          { item.content.type === ResumeItemTextContentTypes[0] &&
+            // Text body
+            <div>{ item.content.body }</div>
+          }
+          { item.content.type === ResumeItemTextContentTypes[1] &&
+            // List body
+            <div>{ listItems(item.content.body) }</div>
+          }
+          { item.content.type === ResumeItemTextContentTypes[2] &&
+            // Tags body
+            <div className="space-x-2">
+              { item.content.body.map((listItem: string, index: number): React.ReactNode =>
+                <div
+                  className="inline outline-1 px-2 py-0.5 rounded-sm"
+                  key={ index }
+                >
+                  { listItem }
+                </div>
+              )}
+            </div>
+          }
+        </div>
+      }
     </div>
   );
 }

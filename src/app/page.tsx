@@ -1,12 +1,14 @@
 "use client"
 
 import { HeroUIProvider } from "@heroui/react";
-import { DEFAULT_RESUME_STATE, type Resume } from "./components/Types";
+import Editor from "./components/Editor/Editor";
+import { EditorContextProvider } from "./contexts/EditorContext";
 import PageEditor from "./components/PageEditor";
+import { DEFAULT_RESUME_STATE, type Resume } from "./components/Types";
 import useLocalStorageState from "./hooks/useLocalStorageState";
 import "./styles/layouts.css";
 
-export default function Home() {
+export default function Home(): React.ReactNode {
 
   const [ resumeState, setResumeState, ] = useLocalStorageState<Resume>(
     "currentResume",
@@ -16,10 +18,13 @@ export default function Home() {
   return (
     <HeroUIProvider>
       <main className="flex-column items-center m-4 -mb-4">
-        <PageEditor
-          resume={ resumeState }
-          setResumeState={ setResumeState }
-        />
+        <EditorContextProvider>
+          <PageEditor
+            resume={ resumeState }
+            setResumeState={ setResumeState }
+          />
+          <Editor />
+        </EditorContextProvider>
       </main>
     </HeroUIProvider>
   );

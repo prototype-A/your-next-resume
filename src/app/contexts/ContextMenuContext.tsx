@@ -1,14 +1,14 @@
 import { createContext, useEffect, useState } from "react";
-import type { Coordinates, HasChildrenProps } from "../components/Types";
-import { DEFAULT_COORDINATES } from "../components/Types";
 import ContextMenu, { ContextMenuItem } from "../components/ContextMenu";
+import type { Coordinates, HasChildrenProp } from "../components/Types";
+import { DEFAULT_COORDINATES } from "../components/Types";
 
 type DisplayContextMenuFn = (position: Coordinates, items: ContextMenuItem[]) => void;
 export const ContextMenuContext = createContext<DisplayContextMenuFn>((_: Coordinates, __: ContextMenuItem[]): void => {});
 
 export function ContextMenuContextProvider({
   children
-}: HasChildrenProps): React.ReactNode {
+}: HasChildrenProp): React.ReactNode {
 
   const [ position, setPosition ] = useState<Coordinates>(DEFAULT_COORDINATES);
   const [ visible, setVisible ] = useState<boolean>(false);

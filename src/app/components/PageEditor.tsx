@@ -1,10 +1,11 @@
 import { Button } from "@heroui/react";
 import { nanoid } from "nanoid/non-secure";
 import { useContext, useRef } from "react";
-import { ContextMenuContext, ContextMenuContextProvider } from "../contexts/ContextMenuContext";
 import ResumeElement from "./ResumeElement";
-import type { Coordinates, PaperSize, Resume, ResumeItem, ResumePage, SetStateFn } from "./Types";
-import { DEFAULT_RESUME_PAGE } from "./Types";
+import type { Coordinates, PaperSize, Ref, Resume, ResumeItem, ResumePage, SetStateFn } from "./Types";
+import { DEFAULT_RESUME_PAGE, ID_LENGTH } from "./Types";
+import { ContextMenuContext, ContextMenuContextProvider } from "../contexts/ContextMenuContext";
+import { EditorContext } from "../contexts/EditorContext";
 import { removeAtIndex } from "../utils/ArrayUtils";
 import "../styles/layouts.css";
 import "../styles/page.css";
@@ -21,21 +22,26 @@ function Page({
   size
 }: PageProps): React.ReactNode {
 
-  const pageRef = useRef<HTMLDivElement>(null);
+  const pageRef: Ref<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const showContextMenu = useContext(ContextMenuContext);
-  const ELEM_ID_LENGTH: number = 8;
+  const [ , , editItem, ] = useContext(EditorContext);
 
-  function addItem(newItem: ResumeItem) {
+  /**
+   * Adds a new item to this page.
+   * 
+   * @param newItem - The item to add.
+   */
+  function addItem(newItem: ResumeItem): void {
     setResumeState((prevState: Resume): Resume => ({
       ...prevState,
       pages: prevState.pages.map((page: ResumePage): ResumePage => {
-        if (resumePage.id === page.id) {
-          return {
-            ...page,
-            items: [ ...page.items, newItem ]
-          };
+        if (resumePage.id !== page.id) {
+          return page;
         }
-        return page;
+        return {
+          ...page,
+          items: [ ...page.items, newItem ]
+        };
       })
     }))
   }
@@ -46,6 +52,10 @@ function Page({
         ? "page-a4"
         : "page-letter"
       )}
+      onClick={(): void => {
+        // Hide editor when clicking on empty area of page
+        editItem(null);
+      }}
       onContextMenu={(event: React.MouseEvent): void => {
         // Do not display the browser's or any other context menu
         event.preventDefault();
@@ -55,7 +65,11 @@ function Page({
         showContextMenu(MOUSE_POS, [
           {
             onPress: (): void => addItem({
-              id: nanoid(ELEM_ID_LENGTH),
+              content: {
+                body: "",
+                type: "Text"
+              },
+              id: nanoid(ID_LENGTH),
               position: MOUSE_POS,
               size: { height: 200, width: 320 },
               type: "Text"
@@ -64,7 +78,15 @@ function Page({
           },
           {
             onPress: (): void => addItem({
-              id: nanoid(ELEM_ID_LENGTH),
+              content: {
+                body: [],
+                company: "",
+                location: "",
+                position: "",
+                startDate: "",
+                endDate: ""
+              },
+              id: nanoid(ID_LENGTH),
               position: MOUSE_POS,
               size: { height: 300, width: 600 },
               type: "Employment"
@@ -73,7 +95,18 @@ function Page({
           },
           {
             onPress: (): void => addItem({
-              id: nanoid(ELEM_ID_LENGTH),
+              content: {
+                body: [],
+                degree: "",
+                gpa: 0.0,
+                institution: "",
+                location: "",
+                major: "",
+                minor: "",
+                startDate: "",
+                endDate: ""
+              },
+              id: nanoid(ID_LENGTH),
               position: MOUSE_POS,
               size: { height: 300, width: 600 },
               type: "Education"
@@ -87,6 +120,7 @@ function Page({
       { resumePage.items.map((item: ResumeItem): React.ReactNode => 
         <ResumeElement
           deleteItem={(itemToDelete: ResumeItem): void => 
+            // Remove item from this page
             setResumeState((prevState: Resume): Resume => ({
               ...prevState,
               pages: prevState.pages.map((page: ResumePage): ResumePage => {
@@ -102,8 +136,9 @@ function Page({
           }
           dragBounds={ pageRef }
           item={ item }
-          key={ `item${item.id}` }
+          key={ `item_${item.id}` }
           updateItem={(updatedItem: ResumeItem): void => 
+            // Update item on this page
             setResumeState((prevState: Resume): Resume => ({
               ...prevState,
               pages: prevState.pages.map((page: ResumePage): ResumePage => {
@@ -147,7 +182,6 @@ export default function PageEditor({
       >
         { resume.pages.map((resumePage: ResumePage, pageNum: number): React.ReactNode => 
           <div key={ `page-${pageNum}_${resumePage.id}` }>
-            { /* Remove page button */ }
             { pageNum >= 1 &&
               <Button
                 className="button"
@@ -163,7 +197,6 @@ export default function PageEditor({
                 { "-" }
               </Button>
             }
-            { /* Page */ }
             <Page
               resumePage={ resumePage }
               setResumeState={ setResumeState }
@@ -171,7 +204,6 @@ export default function PageEditor({
             />
           </div>
         )}
-        { /* Add page button */ }
         <Button
           className="button"
           onPress={(): void => 
@@ -182,7 +214,7 @@ export default function PageEditor({
                 ...resume.pages,
                 {
                   ...DEFAULT_RESUME_PAGE,
-                  id: nanoid(5)
+                  id: nanoid(ID_LENGTH)
                 }
               ]
             }))
