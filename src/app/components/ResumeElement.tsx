@@ -333,7 +333,12 @@ export default function ResumeElement({
           y: event.pageY
         }, [
           {
-            onPress: (): void => deleteItem(item),
+            onPress: (): void => {
+              // Hide editor
+              editItem(null);
+              // Delete item
+              deleteItem(item);
+            },
             text: "Delete"
           }
         ]);
