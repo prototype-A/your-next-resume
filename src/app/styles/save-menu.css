@@ -1,0 +1,17 @@
+.button-container {
+  background: transparent;
+  width: 100%;
+}
+
+.save-button {
+  background: #000;
+  color: #fff;
+  font-size: large;
+  width: 12rem;
+}
+
+.toast-icon {
+  fill: currentColor;
+  height: 2.5rem;
+  width: 2.5rem;
+}

@@ -94,6 +94,7 @@ export type HasChildrenProp = {
 
 
 // Default values
+export const LOCALSTORAGE_KEY: string = "currentResume";
 export const DEFAULT_PAPER_SIZE: PaperSize = "letter";
 export const DEFAULT_RESUME_PAGE: ResumePage = {
   id: "DefaultPage",
