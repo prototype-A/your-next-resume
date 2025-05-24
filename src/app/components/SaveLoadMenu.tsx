@@ -16,6 +16,39 @@ export default function SaveLoadMenu({
   state,
   setState
 }: SaveLoadMenuProps): React.ReactNode {
+
+  /**
+   * Generates a timestamped file name.
+   * 
+   * @param extension - The extension of the file.
+   * @returns The name of the file with the current timestamp.
+   */
+  function generateFileName(extension: string): string {
+    const DL_TIME: string = new Date()
+      .toISOString();
+    return `Resume-${DL_TIME}.${extension}`;
+  }
+
+  /**
+   * Triggers a browser download to save the specified 
+   * data into a file.
+   * 
+   * @param data - The data to save into a file.
+   * @param type - The MIME type of the file.
+   * @param filename - The name of the file to save as.
+   */
+  function saveAsFile(data: BlobPart, type: string, filename: string): void {
+    const BLOB: Blob = new Blob(
+      [ data ],
+      { type: type }
+    );
+    const DL_LINK: HTMLAnchorElement = document.createElement("a");
+    DL_LINK.href = URL.createObjectURL(BLOB);
+    DL_LINK.download = filename;
+    DL_LINK.click();
+    URL.revokeObjectURL(DL_LINK.href);
+  }
+
   return (<>
     <ToastProvider placement={ "top-left" } toastOffset={ 80 } />
     <Modal
@@ -35,17 +68,7 @@ export default function SaveLoadMenu({
               className="save-button"
               onPress={(): void => {
                 // Download as JSON file
-                const RESUME_BLOB = new Blob(
-                  [ JSON.stringify(state, null, 2) ],
-                  { type: "application/json" }
-                );
-                const DL_TIME: string = new Date()
-                  .toISOString();
-                const DL_LINK: HTMLAnchorElement = document.createElement("a");
-                DL_LINK.href = URL.createObjectURL(RESUME_BLOB);
-                DL_LINK.download = `Resume-${DL_TIME}.json`;
-                DL_LINK.click();
-                URL.revokeObjectURL(DL_LINK.href);
+                saveAsFile(JSON.stringify(state, null, 2), "application/json", generateFileName("json"));
                 // Close modal
                 onClose();
               }}
@@ -59,6 +82,7 @@ export default function SaveLoadMenu({
                 // Prompt for file input
                 const FILE_INPUT: HTMLInputElement = document.createElement("input");
                 FILE_INPUT.type = "file";
+                FILE_INPUT.accept = "application/json";
                 FILE_INPUT.addEventListener("change", async (event: Event): Promise<void> => {
                   const FILE: File = (event.target as HTMLInputElement).files![0];
                   try {
@@ -71,7 +95,7 @@ export default function SaveLoadMenu({
                   } catch (error: any) {
                     // Failed to load from file
                     const ERROR_MSG: string = `Failed to load "${FILE.name}"`;
-                    console.error(`${ERROR_MSG}\n${error}`);
+                    console.error(`${ERROR_MSG}.\n${error}`);
                     // Display error
                     addToast({
                       classNames: {
