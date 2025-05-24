@@ -31,14 +31,16 @@ const DateRange = ({
 }
 
 type ElementResizeProps = {
+  hideEditor: (hide: boolean) => void,
   mouseDelta: Coordinates,
   resizeBounds: Ref<HTMLElement>,
   setPosition: SetStateFn<Coordinates>,
   setSize: SetStateFn<Dimensions>,
-  show: boolean;
+  show: boolean
 };
 
 function ElementHandles({
+  hideEditor,
   mouseDelta,
   resizeBounds,
   setPosition,
@@ -61,20 +63,26 @@ function ElementHandles({
     // Prevent moving element when resizing
     event.preventDefault();
     event.stopPropagation();
-
+    // Set resizing states
     setResizing(true);
     setResizeDir(direction);
   }
 
   // Stop resizing if mousedown released outside of element
-  useEventListener("mouseup", (): void => setResizing(false));
+  useEventListener("mouseup", (): void => {
+    setResizing(false);
+    // Show editor after stopping resizing
+    hideEditor(false);
+  });
 
   // Handle resizing element
   useEffect((): void => {
     if (resizing) {
+      // Hide editor while resizing element
+      hideEditor(true);
+
       const X_BOUND: number = resizeBounds.current?.clientWidth ?? 0;
       const Y_BOUND: number = resizeBounds.current?.clientHeight ?? 0;
-
       setSize((prevSize: Dimensions): Dimensions => {
         let newSize: Dimensions = {
           height: prevSize.height,
@@ -228,32 +236,42 @@ export default function ResumeElement({
   const [ size, setSize ] = useState<Dimensions>(item.size);
   const [ , mouseDelta ] = useMousePosition();
   const showContextMenu = useContext(ContextMenuContext);
-  const [ , editingItem, editItem, ] = useContext(EditorContext);
+  const { editingItem, editItem, hideEditor } = useContext(EditorContext);
 
+  /**
+   * Turns an array of strings into a bullet-point list.
+   * 
+   * @param list - An array of strings.
+   * @returns An unordered bullet-point list.
+   */
   function listItems(list: string[]): React.ReactNode {
-    return <ul className="list-inside">
-      { list.map((listItem: string, index: number): React.ReactNode =>
-        <li
-          className="list-item list-disc"
-          key={ index }
-        >
-          { listItem }
-        </li>
-      )}
-    </ul>
+    return (
+      <ul className="list-inside">
+        { list.map((listItem: string, index: number): React.ReactNode =>
+          <li
+            className="list-item list-disc"
+            key={ index }
+          >
+            { listItem }
+          </li>
+        )}
+      </ul>
+    );
   }
 
   // Stop dragging if mousedown released outside of element
   useEventListener("mouseup", (): void => {
     setDragging(false);
     setBoundCorrection(DEFAULT_COORDINATES);
+    // Show editor after stopping dragging
+    hideEditor(false);
   });
 
   // Handle dragging element
   useEffect((): void => {
     if (dragging) {
       // Hide editor while dragging element
-      editItem(null);
+      hideEditor(true);
 
       const X_BOUND: number = dragBounds?.current?.clientWidth ?? 0;
       const Y_BOUND: number = dragBounds?.current?.clientHeight ?? 0;
@@ -290,10 +308,8 @@ export default function ResumeElement({
             correctedYPos += newBCState.y;
             newBCState.y = 0;
           }
-          
           return newBCState;
         });
-
         return {
           x: clamp(correctedXPos, 0, X_BOUND, size.width),
           y: clamp(correctedYPos, 0, Y_BOUND, size.height)
@@ -318,7 +334,6 @@ export default function ResumeElement({
       onClick={(event: React.MouseEvent): void => {
         // Do not click on anything else underneath the item
         event.stopPropagation();
-
         // Show editor when clicking or after dragging item
         editItem(item, updateItem);
       }}
@@ -326,7 +341,6 @@ export default function ResumeElement({
         // Do not display the browser's or any other context menu
         event.preventDefault();
         event.stopPropagation();
-
         // Display context menu when right-clicking this element
         showContextMenu({
           x: event.pageX,
@@ -343,7 +357,11 @@ export default function ResumeElement({
           }
         ]);
       }}
-      onMouseDown={ (): void => setDragging(true) }
+      onMouseDown={(): void => {
+        // Start dragging item
+        setDragging(true);
+        editItem(item, updateItem);
+      }}
       style={{
         aspectRatio: size.width / size.height,
         height: size.height,
@@ -360,6 +378,7 @@ export default function ResumeElement({
         setPosition={ setPosition }
         setSize={ setSize }
         show={ item.id === editingItem?.id }
+        hideEditor={ hideEditor }
       />
       { item.type === ResumeItemTypes[0] &&
         // Type: Education
