@@ -7,7 +7,7 @@ import { EditorContext } from "../contexts/EditorContext";
 import useEventListener from "../hooks/useEventListener";
 import useMousePosition from "../hooks/useMousePosition";
 import { clamp } from "../utils/NumberUtils";
-import { optionalPrefix, optionalSuffix } from "../utils/StringUtils";
+import { optionalPrefix } from "../utils/StringUtils";
 import "../styles/globals.css";
 import "../styles/page.css";
 import "../styles/resume-element.css";
@@ -20,15 +20,11 @@ type DateRangeProps = {
 const DateRange = ({
   endDate = "",
   startDate
-}: DateRangeProps): React.ReactNode => {
-  return (
-    <div>
-      { `${optionalSuffix(startDate, " - ")}
-        ${endDate}`
-      }
-    </div>
-  );
-}
+}: DateRangeProps): React.ReactNode => (
+  <div>
+    { `${startDate}${optionalPrefix(" - ", endDate)}` }
+  </div>
+);
 
 type ElementResizeProps = {
   hideEditor: (hide: boolean) => void,
