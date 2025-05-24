@@ -24,7 +24,7 @@ function Page({
 
   const pageRef: Ref<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const showContextMenu = useContext(ContextMenuContext);
-  const [ , , editItem, ] = useContext(EditorContext);
+  const { editItem } = useContext(EditorContext);
 
   /**
    * Adds a new item to this page.

@@ -62,7 +62,7 @@ const DateRange = ({
 
 export default function ElementEditor(): React.ReactNode {
 
-  const [ , editingItem, , updateItem ] = useContext(EditorContext);
+  const { editingItem, updateItem } = useContext(EditorContext);
   const TEXT_CONTENT_TYPES: { [key: string]: string }[] = mapElementsAsObjects(
     ResumeItemTextContentTypes as unknown as string[],
     "type"

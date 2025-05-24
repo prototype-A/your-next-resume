@@ -5,7 +5,7 @@ import "@/app/styles/editors.css";
 
 export default function Editor(): React.ReactNode {
 
-  const [ visible, , , ] = useContext(EditorContext);
+  const { visible } = useContext(EditorContext);
 
   return (<>
     { visible &&
