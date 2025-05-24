@@ -410,10 +410,10 @@ export default function ResumeElement({
           }
           { item.content.type === ResumeItemTextContentTypes[2] &&
             // Tags body
-            <div className="space-x-2">
+            <div className="h-full space-x-2 w-full">
               { item.content.body.map((listItem: string, index: number): React.ReactNode =>
                 <div
-                  className="inline outline-1 px-2 py-0.5 rounded-sm"
+                  className="inline-block mb-1.5 outline-1 px-2 rounded-sm"
                   key={ index }
                 >
                   { listItem }
