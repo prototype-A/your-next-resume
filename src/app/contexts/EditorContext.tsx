@@ -45,7 +45,7 @@ export function EditorContextProvider({
           editingItemUpdateFn(UPDATED_ITEM);
           setEditingItem(UPDATED_ITEM);
         },
-        hideEditor: (hide: boolean): void => !hide && editingItem
+        hideEditor: () => (hide: boolean): void => !hide && editingItem
           ? setVisible(true)
           : setVisible(false)
       }}
