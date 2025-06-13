@@ -17,7 +17,10 @@
 .resume-element {
   outline: 1px solid #aaa;
   position: absolute;
+  text-wrap: "wrap";
   user-select: none;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .selected {
