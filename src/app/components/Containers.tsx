@@ -1,18 +1,22 @@
-import type { HasChildrenProp } from "./Types";
+import type { HasChildrenProp, HasClassNameProp } from "./Types";
 import "../styles/layouts.css";
 
+type ContainerProps = HasChildrenProp & HasClassNameProp;
+
 export const FlexRowDiv = ({
-  children
-}: HasChildrenProp): React.ReactNode => (
-  <div className="flex-row space-x-2">
+  children,
+  className = ""
+}: ContainerProps): React.ReactNode => (
+  <div className={ "flex-row space-x-2 " + className }>
     { children }
   </div>
 );
 
 export const VSpacedDiv = ({
-  children
-}: HasChildrenProp): React.ReactNode => (
-  <div className="space-y-2">
+  children,
+  className = ""
+}: ContainerProps): React.ReactNode => (
+  <div className={ "space-y-2 " + className }>
     { children }
   </div>
 );
