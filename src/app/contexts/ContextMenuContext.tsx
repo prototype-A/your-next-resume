@@ -3,17 +3,26 @@ import ContextMenu, { ContextMenuItem } from "../components/ContextMenu";
 import type { Coordinates, HasChildrenProp } from "../components/Types";
 import { DEFAULT_COORDINATES } from "../components/Types";
 
-type DisplayContextMenuFn = (position: Coordinates, items: ContextMenuItem[]) => void;
-export const ContextMenuContext = createContext<DisplayContextMenuFn>((_: Coordinates, __: ContextMenuItem[]): void => {});
+export type DisplayContextMenuFn = (position: Coordinates, items: ContextMenuItem[]) => void;
+export const ContextMenuContext: React.Context<DisplayContextMenuFn> = createContext<DisplayContextMenuFn>(
+  (): void => {}
+);
 
-export function ContextMenuContextProvider({
-  children
-}: HasChildrenProp): React.ReactNode {
+export function ContextMenuContextProvider({ children }: HasChildrenProp): React.ReactNode {
 
   const [ position, setPosition ] = useState<Coordinates>(DEFAULT_COORDINATES);
   const [ visible, setVisible ] = useState<boolean>(false);
   const [ items, setItems ] = useState<ContextMenuItem[]>([]);
 
+  /**
+   * Displays the context menu at the specified `position`
+   * and with the specified `items`.
+   * 
+   * @param position - The x and y coordinates to display
+   * the context menu at.
+   * @param items - The array of options to display in the
+   * context menu.
+   */
   function showContextMenu(position: Coordinates, items: ContextMenuItem[]): void {
     setItems(items);
     setPosition(position);
