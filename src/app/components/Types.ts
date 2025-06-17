@@ -8,22 +8,41 @@ export type ResumePage = {
   id: string,
   items: ResumeItem[]
 };
-export const ResumeItemTypes = [
+export const HAlignTypes = [
+  "left",
+  "center",
+  "right",
+  "justify"
+] as const;
+export type HAlign = typeof HAlignTypes[number];
+export type TextFormatting = {
+  font: string,
+  hAlign: HAlign,
+  size: number,
+  style: string
+};
+export type Text = {
+  text: string
+} & TextFormatting;
+export type TextList = {
+  text: string[]
+} & TextFormatting;
+export const RESUME_ITEM_TYPES = [
   "Education",
   "Employment",
   "Text"
 ] as const;
-export type ResumeItemType = typeof ResumeItemTypes[number];
+export type ResumeItemType = typeof RESUME_ITEM_TYPES[number];
 type ResumeItemDateRange = {
   startDate: string,
   endDate: string
-};
-export const ResumeItemTextContentTypes = [
+} & TextFormatting;
+export const RESUME_ITEM_TEXT_CONTENT_TYPES = [
   "Text",
   "List",
   "Tags",
 ] as const;
-export type ResumeItemTextContentType = typeof ResumeItemTextContentTypes[number];
+export type ResumeItemTextContentType = typeof RESUME_ITEM_TEXT_CONTENT_TYPES[number];
 export type ResumeItem = {
   id: string,
   position: Coordinates,
@@ -31,50 +50,55 @@ export type ResumeItem = {
 } & ({
   // Education
   content: {
-    body: string[],
-    degree: string,
-    gpa: number,
-    institution: string,
-    location: string,
-    major: string,
-    minor: string
-  } & ResumeItemDateRange,
-  type: typeof ResumeItemTypes[0]
+    body: TextList,
+    degree: Text,
+    gpa: Text,
+    institution: Text,
+    location: Text,
+    major: Text,
+    minor: Text,
+    period: ResumeItemDateRange
+  },
+  type: typeof RESUME_ITEM_TYPES[0]
 } | {
   // Employment
   content: {
-    body: string[],
-    company: string,
-    location: string,
-    position: string
-  } & ResumeItemDateRange,
-  type: typeof ResumeItemTypes[1]
+    body: TextList,
+    company: Text,
+    location: Text,
+    period: ResumeItemDateRange,
+    position: Text
+  },
+  type: typeof RESUME_ITEM_TYPES[1]
 } | {
   // Text
   content: {
-    body: string,
-    type: typeof ResumeItemTextContentTypes[0]
+    body: Text,
+    type: typeof RESUME_ITEM_TEXT_CONTENT_TYPES[0]
   } | {
-    body: string[],
-    type: typeof ResumeItemTextContentTypes[1] | typeof ResumeItemTextContentTypes[2]
+    body: TextList,
+    type: typeof RESUME_ITEM_TEXT_CONTENT_TYPES[1] | typeof RESUME_ITEM_TEXT_CONTENT_TYPES[2]
   },
-  type: typeof ResumeItemTypes[2]
+  header: Text,
+  type: typeof RESUME_ITEM_TYPES[2]
 });
 export type EducationResumeItem = ResumeItem & {
-  type: typeof ResumeItemTypes[0]
+  type: typeof RESUME_ITEM_TYPES[0]
 };
 export type EmploymentResumeItem = ResumeItem & {
-  type: typeof ResumeItemTypes[1]
+  type: typeof RESUME_ITEM_TYPES[1]
 };
 export type TextResumeItem = ResumeItem & {
-  type: typeof ResumeItemTypes[2]
-};
-export type MultiItemBodyTextResumeItem = TextResumeItem & {
-  type: typeof ResumeItemTypes[2],
   content: {
-    body: string[],
-    type: typeof ResumeItemTextContentTypes[1] | typeof ResumeItemTextContentTypes[2]
-  }
+    type: typeof RESUME_ITEM_TEXT_CONTENT_TYPES[0]
+  },
+  type: typeof RESUME_ITEM_TYPES[2]
+};
+export type MultiItemBodyTextResumeItem = ResumeItem & {
+  content: {
+    type: typeof RESUME_ITEM_TEXT_CONTENT_TYPES[1] | typeof RESUME_ITEM_TEXT_CONTENT_TYPES[2]
+  },
+  type: typeof RESUME_ITEM_TYPES[2]
 };
 
 export type Coordinates = {
@@ -91,6 +115,9 @@ export type SetStateFn<T> = React.Dispatch<React.SetStateAction<T>>;
 export type HasChildrenProp = {
   children?: React.ReactNode
 };
+export type HasClassNameProp = {
+  className?: string
+};
 
 
 // Default values
@@ -104,7 +131,37 @@ export const DEFAULT_RESUME_STATE: Resume = {
   size: DEFAULT_PAPER_SIZE,
   pages: [ DEFAULT_RESUME_PAGE ]
 };
-export const DefaultResumeItemTextContentType = ResumeItemTextContentTypes[0];
+export const DEFAULT_TEXT_CONTENT_TYPE: ResumeItemTextContentType = RESUME_ITEM_TEXT_CONTENT_TYPES[0];
+
+export const DEFAULT_FONT_LIST: string[] = [
+  "Roboto"
+];
+export const DEFAULT_FONT: string = DEFAULT_FONT_LIST[0];
+export const DEFAULT_FONT_SIZE: number = 20;
+export const DEFAULT_TEXT_H_ALIGN: HAlign = HAlignTypes[1];
+export const DEFAULT_TEXT_FORMATTING: TextFormatting = {
+  font: DEFAULT_FONT,
+  hAlign: DEFAULT_TEXT_H_ALIGN,
+  size: DEFAULT_FONT_SIZE,
+  style: ""
+};
+export const DEFAULT_TEXT: Text = {
+  ...DEFAULT_TEXT_FORMATTING,
+  text: ""
+};
+export const DEFAULT_TEXT_LIST: TextList = {
+  ...DEFAULT_TEXT_FORMATTING,
+  text: []
+};
+export const DEFAULT_PERIOD: ResumeItemDateRange = {
+  ...DEFAULT_TEXT_FORMATTING,
+  endDate: "",
+  startDate: ""
+};
+export const DEFAULT_GPA: Text = {
+  ...DEFAULT_TEXT_FORMATTING,
+  text: "0.0"
+};
 
 export const DEFAULT_COORDINATES: Coordinates = {
   x: 0,

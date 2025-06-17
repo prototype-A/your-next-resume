@@ -1,11 +1,12 @@
 import { Reorder, useDragControls } from "framer-motion";
-import { Button, Input } from "@heroui/react";
+import { Button } from "@heroui/react";
 import { useRef, useState } from "react";
 import type { Ref } from "./Types";
+import { Input } from "./Editor/CustomInputs";
 import { reassignIds, removeElement } from "../utils/ArrayUtils";
 import "../styles/editors.css";
+import "../styles/layouts.css";
 import "../styles/page.css";
-
 
 type ListItem = {
   id: number,
@@ -42,13 +43,11 @@ const ReorderableItem = ({
         bounceStiffness: 400,
         bounceDamping: 50
       }}
-      id={ item.id.toString() }
-      key={ item.id }
       value={ item }
     >
       <div
         className="content-center cursor-move w-6"
-        onPointerDown={(event: React.PointerEvent<HTMLDivElement>): void =>
+        onPointerDown={(event: React.PointerEvent): void =>
           dragControls.start(event)
         }
         style={{ touchAction: "none" }}
@@ -75,7 +74,6 @@ const ReorderableItem = ({
   );
 };
 
-
 type ListProps = {
   items?: string[],
   labels?: string[],
@@ -90,10 +88,26 @@ export default function ReorderableList({
   updateList
 }: ListProps): React.ReactNode {
 
-  const [listItems, setListItems] = useState<ListItem[]>(labels && labels.length > (items ? items.length : 0)
-    ? labels.map((label: string, index: number): ListItem => ({ id: index, label: label, value: "" }))
+  const [ listItems, setListItems ] = useState<ListItem[]>(labels &&
+    labels.length > 0 &&
+    labels.length >= (items
+      // Labels were provided with items
+      ? items.length
+      : 0)
+    // Set blank fields with labels
+    ? labels.map((label: string, index: number): ListItem => ({
+      id: index,
+      label: label,
+      value: ""
+    }))
+    // Just items and no labels were provided
     : items
-    ? items.map((item: string, index: number): ListItem => ({ id: index, value: item }))
+    // Set item in fields without labels
+    ? items.map((item: string, index: number): ListItem => ({
+      id: index,
+      value: item
+    }))
+    // No labels or items
     : []
   );
   const dragBoundsRef: Ref<HTMLElement> = useRef<HTMLElement>(null);
@@ -107,7 +121,7 @@ export default function ReorderableList({
    * element from `list`.
    */
   function listItemsToStringArray(list: ListItem[]): string[] {
-    return list.map((item: ListItem): string => item.value)
+    return list.map((item: ListItem): string => item.value);
   }
 
   return (<>

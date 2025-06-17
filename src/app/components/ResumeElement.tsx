@@ -1,9 +1,8 @@
 import { useContext, useEffect, useState } from "react";
-import { FlexRowDiv } from "./Containers";
-import type { Coordinates, Dimensions, Ref, ResumeItem, SetStateFn } from "./Types";
-import { DEFAULT_COORDINATES, ResumeItemTextContentTypes, ResumeItemTypes } from "./Types";
+import type { Coordinates, Dimensions, Ref, ResumeItem, SetStateFn, TextFormatting, TextList } from "./Types";
+import { DEFAULT_COORDINATES, RESUME_ITEM_TEXT_CONTENT_TYPES, RESUME_ITEM_TYPES } from "./Types";
 import { ContextMenuContext } from "../contexts/ContextMenuContext";
-import { EditorContext } from "../contexts/EditorContext";
+import { EditorContext, type EditorState } from "../contexts/EditorContext";
 import useEventListener from "../hooks/useEventListener";
 import useMousePosition from "../hooks/useMousePosition";
 import { clamp } from "../utils/NumberUtils";
@@ -11,20 +10,6 @@ import { optionalPrefix } from "../utils/StringUtils";
 import "../styles/globals.css";
 import "../styles/page.css";
 import "../styles/resume-element.css";
-
-type DateRangeProps = {
-  endDate?: string,
-  startDate: string
-};
-
-const DateRange = ({
-  endDate = "",
-  startDate
-}: DateRangeProps): React.ReactNode => (
-  <div>
-    { `${startDate}${optionalPrefix(" - ", endDate)}` }
-  </div>
-);
 
 type ElementResizeProps = {
   hideEditor: (hide: boolean) => void,
@@ -207,6 +192,22 @@ function ElementHandles({
   );
 }
 
+type DateRangeProps = {
+  endDate?: string,
+  startDate: string,
+  style?: React.CSSProperties
+};
+
+const DateRange = ({
+  endDate = "",
+  startDate,
+  style
+}: DateRangeProps): React.ReactNode => (
+  <div style={ style }>
+    { startDate + optionalPrefix(" - ", endDate) }
+  </div>
+);
+
 type ResumeElementProps = {
   deleteItem: (item: ResumeItem) => void,
   dragBounds: Ref<HTMLElement>,
@@ -232,27 +233,53 @@ export default function ResumeElement({
   const [ size, setSize ] = useState<Dimensions>(item.size);
   const [ , mouseDelta ] = useMousePosition();
   const showContextMenu = useContext(ContextMenuContext);
-  const { editingItem, editItem, hideEditor } = useContext(EditorContext);
+  const { editingItem, editItem, hideEditor } = useContext<EditorState>(EditorContext);
 
   /**
-   * Turns an array of strings into a bullet-point list.
+   * Displays a `TextList` as a bullet-point list.
    * 
-   * @param list - An array of strings.
+   * @param list - A `TextList` object.
    * @returns An unordered bullet-point list.
    */
-  function listItems(list: string[]): React.ReactNode {
-    return (
-      <ul className="list-inside">
-        { list.map((listItem: string, index: number): React.ReactNode =>
-          <li
-            className="list-item list-disc"
-            key={ index }
-          >
-            { listItem }
-          </li>
-        )}
-      </ul>
-    );
+  const displayTextList = (arr: TextList): React.ReactNode => (
+    <ul
+      className="list-inside -space-y-2"
+      style={ getCSSProperties(arr) }
+    >
+      { arr.text.map((item: string, index: number): React.ReactNode =>
+        <li
+          className="list-item list-disc"
+          key={ index }
+        >
+          { item }
+        </li>
+      )}
+    </ul>
+  );
+
+  /**
+   * Returns the CSS Styles for an HTML element.
+   * 
+   * @param formatting - Object containing properties for styling
+   * text.
+   * @returns The `CSSProperties` object based on the specified
+   * `text` formatting.
+   */
+  function getCSSProperties(formatting: TextFormatting): React.CSSProperties {
+    const UNDERLINE_STYLE: string = formatting.style.includes("U")
+      ? "underline "
+      : "";
+    const STRIKETHROUGH_STYLE: string = formatting.style.includes("S")
+      ? "line-through"
+      : "";
+    return {
+      fontFamily: `"${formatting.font}", sans-serif`,
+      fontSize: formatting.size,
+      fontStyle: formatting.style.includes("I") ? "italic" : "",
+      fontWeight: formatting.style.includes("B") ? "bold" : "",
+      textAlign: formatting.hAlign,
+      textDecoration: UNDERLINE_STYLE + STRIKETHROUGH_STYLE
+    };
   }
 
   // Stop dragging if mousedown released outside of element
@@ -295,7 +322,7 @@ export default function ResumeElement({
           }
           // When mouse returns to draggable area
           if (prevBC.x < 0 && newBCState.x > 0 ||
-            prevBC.x > 0 && newBCState.x < 0) {
+              prevBC.x > 0 && newBCState.x < 0) {
             correctedXPos += newBCState.x;
             newBCState.x = 0;
           }
@@ -376,60 +403,85 @@ export default function ResumeElement({
         show={ item.id === editingItem?.id }
         hideEditor={ hideEditor }
       />
-      { item.type === ResumeItemTypes[0] &&
+      { item.type === RESUME_ITEM_TYPES[0] &&
         // Type: Education
         <div>
-          <div>{ item.content.institution }</div>
-          <div>{ item.content.location }</div>
-          <div>{ item.content.degree }</div>
-          <FlexRowDiv>
-            <div>{ optionalPrefix("Major: ", item.content.major) }</div>
-            <div>{ optionalPrefix("Minor: ", item.content.minor) }</div>
-          </FlexRowDiv>
+          <div style={ getCSSProperties(item.content.institution) }>
+            { item.content.institution.text }
+          </div>
+          <div style={ getCSSProperties(item.content.location) }>
+            { item.content.location.text }
+          </div>
+          <div style={ getCSSProperties(item.content.degree) }>
+            { item.content.degree.text }
+          </div>
+          <div style={ getCSSProperties(item.content.major) }>
+            { optionalPrefix("Major: ", item.content.major.text) }
+          </div>
+          <div style={ getCSSProperties(item.content.minor) }>
+            { optionalPrefix("Minor: ", item.content.minor.text) }
+          </div>
           <DateRange
-            endDate={ item.content.endDate }
-            startDate={ item.content.startDate }
+            endDate={ item.content.period.endDate }
+            startDate={ item.content.period.startDate }
+            style={ getCSSProperties(item.content.period) }
           />
-          <div>
-            { item.content.gpa > 0
-              ? optionalPrefix("GPA: ", item.content.gpa.toString())
+          <div style={ getCSSProperties(item.content.body) }>
+            { Number(item.content.gpa.text) > 0
+              ? optionalPrefix("GPA: ", item.content.gpa.text)
               : ""
             }
           </div>
-          <div>{ listItems(item.content.body) }</div>
+          { displayTextList(item.content.body) }
         </div>
       }
-      { item.type === ResumeItemTypes[1] &&
+      { item.type === RESUME_ITEM_TYPES[1] &&
         // Type: Employment
         <div>
-          <div>{ item.content.position }</div>
-          <div>{ item.content.company }</div>
-          <div>{ item.content.location }</div>
+          <div style={ getCSSProperties(item.content.position) }>
+            { item.content.position.text }
+          </div>
+          <div style={ getCSSProperties(item.content.company) }>
+            { item.content.company.text }
+          </div>
+          <div style={ getCSSProperties(item.content.location) }>
+            { item.content.location.text }
+          </div>
           <DateRange
-            endDate={ item.content.endDate }
-            startDate={ item.content.startDate }
+            endDate={ item.content.period.endDate }
+            startDate={ item.content.period.startDate }
+            style={ getCSSProperties(item.content.period) }
           />
-          <div>{ listItems(item.content.body) }</div>
+          { displayTextList(item.content.body) }
         </div>
       }
-      { item.type === ResumeItemTypes[2] &&
+      { item.type === RESUME_ITEM_TYPES[2] &&
         // Type: Text
         <div>
-          { item.content.type === ResumeItemTextContentTypes[0] &&
+          <div style={ getCSSProperties(item.header) }>
+            { item.header.text }
+          </div>
+          { item.content.type === RESUME_ITEM_TEXT_CONTENT_TYPES[0] &&
             // Text body
-            <div>{ item.content.body }</div>
+            <div style={ getCSSProperties(item.content.body) }>
+              { item.content.body.text }
+            </div>
           }
-          { item.content.type === ResumeItemTextContentTypes[1] &&
+          { item.content.type === RESUME_ITEM_TEXT_CONTENT_TYPES[1] &&
             // List body
-            <div>{ listItems(item.content.body) }</div>
+            displayTextList(item.content.body)
           }
-          { item.content.type === ResumeItemTextContentTypes[2] &&
+          { item.content.type === RESUME_ITEM_TEXT_CONTENT_TYPES[2] &&
             // Tags body
-            <div className="h-full space-x-2 w-full">
-              { item.content.body.map((listItem: string, index: number): React.ReactNode =>
+            <div
+              className="h-full mt-2 space-x-2 w-full" 
+              style={ getCSSProperties(item.content.body) }
+            >
+              { item.content.body.text.map((listItem: string, index: number): React.ReactNode =>
                 <div
                   className="inline-block mb-1.5 outline-1 px-2 rounded-sm"
                   key={ index }
+                  style={ getCSSProperties(item.content.body) }
                 >
                   { listItem }
                 </div>

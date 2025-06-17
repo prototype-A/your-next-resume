@@ -3,9 +3,9 @@ import { nanoid } from "nanoid/non-secure";
 import { useContext, useRef } from "react";
 import ResumeElement from "./ResumeElement";
 import type { Coordinates, PaperSize, Ref, Resume, ResumeItem, ResumePage, SetStateFn } from "./Types";
-import { DEFAULT_RESUME_PAGE, ID_LENGTH } from "./Types";
-import { ContextMenuContext, ContextMenuContextProvider } from "../contexts/ContextMenuContext";
-import { EditorContext } from "../contexts/EditorContext";
+import { DEFAULT_GPA, DEFAULT_PERIOD, DEFAULT_RESUME_PAGE, DEFAULT_TEXT, DEFAULT_TEXT_LIST, ID_LENGTH, RESUME_ITEM_TYPES } from "./Types";
+import { ContextMenuContext, ContextMenuContextProvider, type DisplayContextMenuFn } from "../contexts/ContextMenuContext";
+import { EditorContext, type EditorState } from "../contexts/EditorContext";
 import { removeAtIndex } from "../utils/ArrayUtils";
 import "../styles/layouts.css";
 import "../styles/page.css";
@@ -23,8 +23,8 @@ function Page({
 }: PageProps): React.ReactNode {
 
   const pageRef: Ref<HTMLDivElement> = useRef<HTMLDivElement>(null);
-  const showContextMenu = useContext(ContextMenuContext);
-  const { editItem } = useContext(EditorContext);
+  const showContextMenu = useContext<DisplayContextMenuFn>(ContextMenuContext);
+  const { editItem } = useContext<EditorState>(EditorContext);
 
   /**
    * Adds a new item to this page.
@@ -66,52 +66,51 @@ function Page({
           {
             onPress: (): void => addItem({
               content: {
-                body: "",
+                body: DEFAULT_TEXT,
                 type: "Text"
               },
+              header: DEFAULT_TEXT,
               id: nanoid(ID_LENGTH),
               position: MOUSE_POS,
               size: { height: 200, width: 320 },
-              type: "Text"
+              type: RESUME_ITEM_TYPES[2]
             }),
-            text: "New Text Item"
+            text: `New ${RESUME_ITEM_TYPES[2]} Item`
           },
           {
             onPress: (): void => addItem({
               content: {
-                body: [],
-                company: "",
-                location: "",
-                position: "",
-                startDate: "",
-                endDate: ""
+                body: DEFAULT_TEXT_LIST,
+                company: DEFAULT_TEXT,
+                location: DEFAULT_TEXT,
+                period: DEFAULT_PERIOD,
+                position: DEFAULT_TEXT
               },
               id: nanoid(ID_LENGTH),
               position: MOUSE_POS,
               size: { height: 300, width: 600 },
-              type: "Employment"
+              type: RESUME_ITEM_TYPES[1]
             }),
-            text: "New Employment Item"
+            text: `New ${RESUME_ITEM_TYPES[1]} Item`
           },
           {
             onPress: (): void => addItem({
               content: {
-                body: [],
-                degree: "",
-                gpa: 0.0,
-                institution: "",
-                location: "",
-                major: "",
-                minor: "",
-                startDate: "",
-                endDate: ""
+                body: DEFAULT_TEXT_LIST,
+                degree: DEFAULT_TEXT,
+                gpa: DEFAULT_GPA,
+                institution: DEFAULT_TEXT,
+                location: DEFAULT_TEXT,
+                major: DEFAULT_TEXT,
+                minor: DEFAULT_TEXT,
+                period: DEFAULT_PERIOD
               },
               id: nanoid(ID_LENGTH),
               position: MOUSE_POS,
               size: { height: 300, width: 600 },
-              type: "Education"
+              type: RESUME_ITEM_TYPES[0]
             }),
-            text: "New Education Item"
+            text: `New ${RESUME_ITEM_TYPES[0]} Item`
           }
         ]);
       }}

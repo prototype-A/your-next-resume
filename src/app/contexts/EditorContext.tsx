@@ -1,23 +1,31 @@
 import { createContext, useState } from "react";
-import type { HasChildrenProp, ResumeItem } from "../components/Types";
+import type { HasChildrenProp, ResumeItem, SetStateFn, TextFormatting } from "../components/Types";
+import { setNestedValue } from "../utils/ObjectUtils";
 
 type ItemUpdateFn = (updatedItem: ResumeItem) => void;
-export type EditingItem = ResumeItem | null;
+type EditingField = string | null
+type EditingItem = ResumeItem | null;
 export type EditorState = {
-  visible: boolean,
+  editingField: EditingField,
   editingItem: EditingItem,
   editItem: (item: EditingItem, itemUpdater?: ItemUpdateFn) => void,
+  hideEditor: (hide: boolean) => void,
+  setEditingField: SetStateFn<EditingField>,
+  updateField: (formatting: TextFormatting) => void,
   updateItem: (updatedItem: React.SetStateAction<ResumeItem>) => void,
-  hideEditor: (hide: boolean) => void
+  visible: boolean
 };
 const EmptyFn: (() => void) = (): void => {};
 
-export const EditorContext = createContext<EditorState>({
-  visible: false,
+export const EditorContext: React.Context<EditorState> = createContext<EditorState>({
+  editingField: null,
   editingItem: null,
   editItem: EmptyFn,
+  hideEditor: EmptyFn,
+  setEditingField: EmptyFn,
+  updateField: EmptyFn,
   updateItem: EmptyFn,
-  hideEditor: EmptyFn
+  visible: false
 });
 
 export function EditorContextProvider({
@@ -27,27 +35,45 @@ export function EditorContextProvider({
   const [ visible, setVisible ] = useState<boolean>(false);
   const [ editingItem, setEditingItem ] = useState<EditingItem>(null);
   const [ editingItemUpdateFn, setEditingItemUpdateFn ] = useState<ItemUpdateFn>(() => {});
+  const [ editingField, setEditingField ] = useState<EditingField>(null);
+
+  /**
+   * Updates the item that is currently being edited with the
+   * specified `itemUpdate`.
+   * 
+   * @param itemUpdate - The updated item or a callback function
+   * that updates the previous item state.
+   */
+  function updateItem(itemUpdate: React.SetStateAction<ResumeItem>): void {
+    const UPDATED_ITEM: ResumeItem = itemUpdate instanceof Function
+      ? itemUpdate(editingItem as ResumeItem)
+      : itemUpdate;
+    editingItemUpdateFn(UPDATED_ITEM);
+    setEditingItem(UPDATED_ITEM);
+  }
 
   return (
     <EditorContext.Provider
       value={{
-        visible: visible,
+        editingField: editingField,
         editingItem: editingItem,
         editItem: (item: EditingItem, itemUpdater: ItemUpdateFn = EmptyFn): void => {
           setEditingItemUpdateFn((): ItemUpdateFn => (updatedItem: ResumeItem) => itemUpdater(updatedItem));
           setEditingItem(item);
+          setEditingField(null);
           setVisible(item ? true : false);
         },
-        updateItem: (itemUpdate: React.SetStateAction<ResumeItem>): void => {
-          const UPDATED_ITEM: ResumeItem = itemUpdate instanceof Function
-            ? itemUpdate(editingItem as ResumeItem)
-            : itemUpdate;
-          editingItemUpdateFn(UPDATED_ITEM);
-          setEditingItem(UPDATED_ITEM);
-        },
-        hideEditor: () => (hide: boolean): void => !hide && editingItem
+        hideEditor: (): ((hide: boolean) => void) => (hide: boolean): void => !hide && editingItem
           ? setVisible(true)
-          : setVisible(false)
+          : setVisible(false),
+        setEditingField: setEditingField,
+        updateField: (formatting: TextFormatting): void => {
+          if (editingField) {
+            updateItem(setNestedValue(editingItem, editingField, formatting) as ResumeItem);
+          }
+        },
+        updateItem: updateItem,
+        visible: visible
       }}
     >
       { children }

@@ -1,10 +1,11 @@
 import { useContext } from "react";
-import { Card, CardBody, Input, NumberInput, Select, SelectItem, type SharedSelection, Textarea } from "@heroui/react";
+import { Card, CardBody, NumberInput, Select, SelectItem, type SharedSelection } from "@heroui/react";
 import { FlexRowDiv, VSpacedDiv } from "../Containers";
+import { Input, TextArea } from "./CustomInputs";
 import ReorderableList from "../ReorderableList";
 import type { EducationResumeItem, EmploymentResumeItem, MultiItemBodyTextResumeItem, ResumeItem, ResumeItemTextContentType, SetStateFn, TextResumeItem } from "../Types";
-import { ResumeItemTextContentTypes, ResumeItemTypes } from "../Types";
-import { EditorContext } from "@/app/contexts/EditorContext";
+import { RESUME_ITEM_TYPES, RESUME_ITEM_TEXT_CONTENT_TYPES, DEFAULT_TEXT, DEFAULT_TEXT_LIST } from "../Types";
+import { EditorContext, type EditorState } from "@/app/contexts/EditorContext";
 import { mapElementsAsObjects } from "@/app/utils/ArrayUtils";
 import { clamp } from "@/app/utils/NumberUtils";
 import "@/app/styles/editors.css";
@@ -14,6 +15,7 @@ type ResumeItemEditorProps = {
   item: ResumeItem,
   updateItem: SetStateFn<ResumeItem>
 };
+
 const DateRange = ({
   item,
   updateItem
@@ -23,38 +25,48 @@ const DateRange = ({
       classNames={{
         input: "text"
       }}
+      field="content.period"
       label="Start Date"
       onValueChange={(newValue: string): void =>
         updateItem((prevState: ResumeItem): ResumeItem => ({
           ...prevState,
           content: {
             ...prevState.content,
-            startDate: newValue
+            period: {
+              ...(prevState as EducationResumeItem | EmploymentResumeItem).content.period,
+              startDate: newValue
+            }
           }
         }) as EducationResumeItem | EmploymentResumeItem)
       }
-      radius="sm"
-      size="sm"
-      value={ item.type === ResumeItemTypes[0] || item.type === ResumeItemTypes[1] ? item.content.startDate : "" }
+      value={ item.type === RESUME_ITEM_TYPES[0] || item.type === RESUME_ITEM_TYPES[1]
+        ? item.content.period.startDate
+        : ""
+      }
       variant="underlined"
     />
     <Input
       classNames={{
         input: "text"
       }}
+      field="content.period"
       label="End Date"
       onValueChange={(newValue: string): void =>
         updateItem((prevState: ResumeItem): ResumeItem => ({
           ...prevState,
           content: {
             ...prevState.content,
-            endDate: newValue
+            period: {
+              ...(prevState as EducationResumeItem | EmploymentResumeItem).content.period,
+              endDate: newValue
+            }
           }
         }) as EducationResumeItem | EmploymentResumeItem)
       }
-      radius="sm"
-      size="sm"
-      value={ item.type === ResumeItemTypes[0] || item.type === ResumeItemTypes[1] ? item.content.endDate : "" }
+      value={ item.type === RESUME_ITEM_TYPES[0] || item.type === RESUME_ITEM_TYPES[1]
+        ? item.content.period.endDate
+        : ""
+      }
       variant="underlined"
     />
   </FlexRowDiv>
@@ -62,68 +74,77 @@ const DateRange = ({
 
 export default function ElementEditor(): React.ReactNode {
 
-  const { editingItem, updateItem } = useContext(EditorContext);
+  const { editingItem, updateItem } = useContext<EditorState>(EditorContext);
   const TEXT_CONTENT_TYPES: { [key: string]: string }[] = mapElementsAsObjects(
-    ResumeItemTextContentTypes as unknown as string[],
+    RESUME_ITEM_TEXT_CONTENT_TYPES as unknown as string[],
     "type"
   );
 
   function isTextContentType(type: ResumeItemTextContentType): boolean {
-    return (editingItem as TextResumeItem)?.content.type === type;
+    return (editingItem as TextResumeItem | MultiItemBodyTextResumeItem)?.content.type === type;
   }
 
   return (
-    <Card className="editor-panel">
+    <Card
+      className="editor-panel"
+      radius="sm"
+    >
       <CardBody>
-        { editingItem?.type === ResumeItemTypes[0] &&
+        { editingItem?.type === RESUME_ITEM_TYPES[0] &&
           // Type: "Education"
           <VSpacedDiv>
             <Input
+              field="content.institution"
               label="Institution"
               onValueChange={(newValue: string): void =>
                 updateItem((prevState: ResumeItem): ResumeItem => ({
                   ...prevState,
                   content: {
                     ...prevState.content,
-                    institution: newValue
+                    institution: {
+                      ...(prevState as EducationResumeItem).content.institution,
+                      text: newValue
+                    }
                   }
                 }) as EducationResumeItem)
               }
-              radius="sm"
-              size="sm"
-              value={ editingItem.content.institution }
+              value={ editingItem.content.institution.text }
             />
             <Input
+              field="content.location"
               label="Location"
               onValueChange={(newValue: string): void =>
                 updateItem((prevState: ResumeItem): ResumeItem => ({
                   ...prevState,
                   content: {
                     ...prevState.content,
-                    location: newValue
+                    location: {
+                      ...(prevState as EducationResumeItem).content.location,
+                      text: newValue
+                    }
                   }
                 }) as EducationResumeItem)
               }
-              radius="sm"
-              size="sm"
-              value={ editingItem.content.location }
+              value={ editingItem.content.location.text }
             />
             <FlexRowDiv>
               <Input
                 className="basis-4/5"
+                field="content.degree"
                 label="Degree"
                 onValueChange={(newValue: string): void =>
                   updateItem((prevState: ResumeItem): ResumeItem => ({
                     ...prevState,
                     content: {
                       ...prevState.content,
-                      degree: newValue
+                      degree: {
+                        ...(prevState as EducationResumeItem).content.degree,
+                        text: newValue
+                      }
                     }
                   }) as EducationResumeItem)
                 }
-                radius="sm"
-                size="sm"
-                value={ editingItem.content.degree }
+                value={ editingItem.content.degree.text }
               />
               <NumberInput
                 className="basis-1/5"
@@ -139,51 +160,58 @@ export default function ElementEditor(): React.ReactNode {
                 maxValue={ 4 }
                 minValue={ 0 }
                 onValueChange={(newValue: number): void => {
-                  const INPUT = !isNaN(newValue) ? newValue : 0
+                  const INPUT: number = !isNaN(newValue) ? newValue : 0;
                   updateItem((prevState: ResumeItem): ResumeItem => ({
                     ...prevState,
                     content: {
                       ...prevState.content,
-                      gpa: clamp(+INPUT, 0, 4)
+                      gpa: {
+                        ...(prevState as EducationResumeItem).content.gpa,
+                        text: clamp(+INPUT, 0, 4).toString()
+                      }
                     }
                   }) as EducationResumeItem);
                 }}
                 radius="sm"
                 size="sm"
-                value={ editingItem.content.gpa }
+                value={ Number(editingItem.content.gpa.text) }
                 variant="underlined"
               />
             </FlexRowDiv>
             <FlexRowDiv>
               <Input
+                field="content.major"
                 label="Major"
                 onValueChange={(newValue: string): void =>
                   updateItem((prevState: ResumeItem): ResumeItem => ({
                     ...prevState,
                     content: {
                       ...prevState.content,
-                      major: newValue
+                      major: {
+                        ...(prevState as EducationResumeItem).content.major,
+                        text: newValue
+                      }
                     }
                   }) as EducationResumeItem)
                 }
-                radius="sm"
-                size="sm"
-                value={ editingItem.content.major }
+                value={ editingItem.content.major.text }
               />
               <Input
+                field="content.minor"
                 label="Minor"
                 onValueChange={(newValue: string): void =>
                   updateItem((prevState: ResumeItem): ResumeItem => ({
                     ...prevState,
                     content: {
                       ...prevState.content,
-                      minor: newValue
+                      minor: {
+                        ...(prevState as EducationResumeItem).content.minor,
+                        text: newValue
+                      }
                     }
                   }) as EducationResumeItem)
                 }
-                radius="sm"
-                size="sm"
-                value={ editingItem.content.minor }
+                value={ editingItem.content.minor.text }
               />
             </FlexRowDiv>
             <DateRange
@@ -191,86 +219,116 @@ export default function ElementEditor(): React.ReactNode {
               updateItem={ updateItem }
             />
             <ReorderableList
+              key={ editingItem.id }
+              items={ (editingItem as EducationResumeItem).content.body.text }
               updateList={(updatedList: string[]): void =>
                 updateItem((prevState: ResumeItem): ResumeItem => ({
                   ...prevState,
                   content: {
                     ...prevState.content,
-                    body: updatedList
+                    body: {
+                      ...prevState.content.body,
+                      text: updatedList
+                    }
                   }
                 }) as EducationResumeItem)
               }
             />
           </VSpacedDiv>
         }
-        { editingItem?.type === ResumeItemTypes[1] &&
+        { editingItem?.type === RESUME_ITEM_TYPES[1] &&
           // Type: "Employment"
           <VSpacedDiv>
             <Input
+              field="content.position"
               label="Position"
               onValueChange={(newValue: string): void =>
                 updateItem((prevState: ResumeItem): ResumeItem => ({
                   ...prevState,
                   content: {
                     ...prevState.content,
-                    position: newValue
+                    position: {
+                      ...(prevState as EmploymentResumeItem).content.position,
+                      text: newValue
+                    }
                   }
                 }) as EmploymentResumeItem)
               }
-              radius="sm"
-              size="sm"
-              value={ editingItem.content.position }
+              value={ editingItem.content.position.text }
             />
             <Input
+              field="content.company"
               label="Company"
               onValueChange={(newValue: string): void =>
                 updateItem((prevState: ResumeItem): ResumeItem => ({
                   ...prevState,
                   content: {
                     ...prevState.content,
-                    company: newValue
+                    company: {
+                      ...(prevState as EmploymentResumeItem).content.company,
+                      text: newValue
+                    }
                   }
                 }) as EmploymentResumeItem)
               }
-              radius="sm"
-              size="sm"
-              value={ editingItem.content.company }
+              value={ editingItem.content.company.text }
             />
             <Input
+              field="content.location"
               label="Location"
               onValueChange={(newValue: string): void =>
                 updateItem((prevState: ResumeItem): ResumeItem => ({
                   ...prevState,
                   content: {
                     ...prevState.content,
-                    location: newValue
+                    location: {
+                      ...(prevState as EmploymentResumeItem).content.location,
+                      text: newValue
+                    }
                   }
                 }) as EmploymentResumeItem)
               }
-              radius="sm"
-              size="sm"
-              value={ editingItem.content.location }
+              value={ editingItem.content.location.text }
             />
             <DateRange
               item={ editingItem }
               updateItem={ updateItem }
             />
             <ReorderableList
+              key={ editingItem.id }
+              items={ (editingItem as EmploymentResumeItem).content.body.text }
               updateList={(updatedList: string[]): void =>
                 updateItem((prevState: ResumeItem): ResumeItem => ({
                   ...prevState,
                   content: {
                     ...prevState.content,
-                    body: updatedList
+                    body: {
+                      ...prevState.content.body,
+                      text: updatedList
+                    }
                   }
                 }) as EmploymentResumeItem)
               }
             />
           </VSpacedDiv>
         }
-        { editingItem?.type === ResumeItemTypes[2] &&
+        { editingItem?.type === RESUME_ITEM_TYPES[2] &&
           // Type: "Text"
           <VSpacedDiv>
+            <Input
+              field="header"
+              label="Header"
+              onValueChange={(newValue: string): void =>
+                updateItem((prevState: ResumeItem): ResumeItem => ({
+                  ...prevState,
+                  header: {
+                    ...(prevState as TextResumeItem).header,
+                    text: newValue
+                  }
+                }) as TextResumeItem)
+              }
+              value={ editingItem.header.text }
+            />
             <Select
               // Text Content Dropdown: "Text" | "List" | "Tags"
               items={ TEXT_CONTENT_TYPES }
@@ -281,59 +339,63 @@ export default function ElementEditor(): React.ReactNode {
                   return;
                 }
                 const NEW_BODY_TYPE: ResumeItemTextContentType = keys.currentKey as ResumeItemTextContentType;
-                const IS_LIST_TYPE: boolean = editingItem.content.type === ResumeItemTextContentTypes[1] || editingItem.content.type === ResumeItemTextContentTypes[2];
                 updateItem((prevState: ResumeItem): ResumeItem => ({
                   ...prevState,
                   content: {
-                    body: NEW_BODY_TYPE === ResumeItemTextContentTypes[0]
-                      ? ""
-                      : IS_LIST_TYPE
-                      ? prevState.content.body
-                      : [] as string[],
+                    body: NEW_BODY_TYPE === RESUME_ITEM_TEXT_CONTENT_TYPES[0]
+                      ? DEFAULT_TEXT
+                      : DEFAULT_TEXT_LIST,
                     type: NEW_BODY_TYPE
                   }
-                }) as TextResumeItem);
+                }) as TextResumeItem | MultiItemBodyTextResumeItem);
               }}
               selectedKeys={[ editingItem.content.type ]}
               selectionMode="single"
               size="sm"
             >
-              { (item) =>
+              { (item: { [key: string]: string }): React.JSX.Element =>
                 <SelectItem key={ item.type }>
                   { item.type }
                 </SelectItem>
               }
             </Select>
-            { isTextContentType(ResumeItemTextContentTypes[0]) &&
+            { isTextContentType(RESUME_ITEM_TEXT_CONTENT_TYPES[0]) &&
               // Content: "Text"
-              <Textarea
+              <TextArea
                 className="text"
                 label="Text"
-                minRows={ 5 }
+                minRows={ 6 }
                 onValueChange={(newValue: string): void => 
                   updateItem((prevState: ResumeItem): ResumeItem => ({
                     ...prevState,
                     content: {
                       ...prevState.content,
-                      body: newValue
+                      body: {
+                        ...prevState.content.body,
+                        text: newValue
+                      }
                     }
                   }) as TextResumeItem)
                 }
                 placeholder="Your text here..."
-                value={ editingItem.content.body as string }
+                value={ (editingItem as TextResumeItem).content.body.text }
               />
             }
-            { (isTextContentType(ResumeItemTextContentTypes[1]) ||
-              isTextContentType(ResumeItemTextContentTypes[2])) &&
+            { (isTextContentType(RESUME_ITEM_TEXT_CONTENT_TYPES[1]) ||
+              isTextContentType(RESUME_ITEM_TEXT_CONTENT_TYPES[2])) &&
               // Content: "List" | "Tags"
               <ReorderableList
-                items={ editingItem.content.body as string[] }
+                key={ editingItem.id }
+                items={ (editingItem as MultiItemBodyTextResumeItem).content.body.text }
                 updateList={(updatedList: string[]): void =>
                   updateItem((prevState: ResumeItem): ResumeItem => ({
                     ...prevState,
                     content: {
                       ...prevState.content,
-                      body: updatedList
+                      body: {
+                        ...prevState.content.body,
+                        text: updatedList
+                      }
                     }
                   }) as MultiItemBodyTextResumeItem)
                 }
