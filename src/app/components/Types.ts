@@ -8,6 +8,7 @@ export type ResumePage = {
   id: string,
   items: ResumeItem[]
 };
+
 export const HAlignTypes = [
   "left",
   "center",
@@ -15,11 +16,24 @@ export const HAlignTypes = [
   "justify"
 ] as const;
 export type HAlign = typeof HAlignTypes[number];
+export const VAlignTypes = [
+  "top",
+  "middle",
+  "bottom"
+] as const;
+export type VAlign = typeof VAlignTypes[number];
+export const DynamicFontSizeFitTypes = [
+  "horizontal",
+  "vertical"
+] as const;
+export type DynamicFontSizeFit = typeof DynamicFontSizeFitTypes[number];
+
 export type TextFormatting = {
   font: string,
   hAlign: HAlign,
   size: number,
-  style: string
+  style: string,
+  vAlign: VAlign
 };
 export type Text = {
   text: string
@@ -121,6 +135,11 @@ export type HasClassNameProp = {
 
 
 // Default values
+export const A4_PAPER_HEIGHT: number = 297;
+export const A4_PAPER_WIDTH: number = 210;
+export const LETTER_PAPER_HEIGHT: number = 279.4;
+export const LETTER_PAPER_WIDTH: number = 215.9;
+
 export const LOCALSTORAGE_KEY: string = "currentResume";
 export const DEFAULT_PAPER_SIZE: PaperSize = "letter";
 export const DEFAULT_RESUME_PAGE: ResumePage = {
@@ -139,11 +158,13 @@ export const DEFAULT_FONT_LIST: string[] = [
 export const DEFAULT_FONT: string = DEFAULT_FONT_LIST[0];
 export const DEFAULT_FONT_SIZE: number = 20;
 export const DEFAULT_TEXT_H_ALIGN: HAlign = HAlignTypes[1];
+export const DEFAULT_TEXT_V_ALIGN: VAlign = VAlignTypes[1];
 export const DEFAULT_TEXT_FORMATTING: TextFormatting = {
   font: DEFAULT_FONT,
   hAlign: DEFAULT_TEXT_H_ALIGN,
   size: DEFAULT_FONT_SIZE,
-  style: ""
+  style: "",
+  vAlign: DEFAULT_TEXT_V_ALIGN
 };
 export const DEFAULT_TEXT: Text = {
   ...DEFAULT_TEXT_FORMATTING,
