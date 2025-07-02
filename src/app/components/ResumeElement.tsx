@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import type { Coordinates, Dimensions, Ref, ResumeItem, SetStateFn, TextFormatting, TextList } from "./Types";
-import { DEFAULT_COORDINATES, RESUME_ITEM_TEXT_CONTENT_TYPES, RESUME_ITEM_TYPES } from "./Types";
-import { ContextMenuContext } from "../contexts/ContextMenuContext";
+import { DEFAULT_COORDINATES, DEFAULT_DIMENSIONS, RESUME_ITEM_TEXT_CONTENT_TYPES, RESUME_ITEM_TYPES } from "./Types";
+import { ContextMenuContext, type DisplayContextMenuFn } from "../contexts/ContextMenuContext";
 import { EditorContext, type EditorState } from "../contexts/EditorContext";
 import useEventListener from "../hooks/useEventListener";
 import useMousePosition from "../hooks/useMousePosition";
@@ -32,6 +32,10 @@ function ElementHandles({
   enum Direction { NW, N, NE, W, E, SW, S, SE };
   const [ resizing, setResizing ] = useState<boolean>(false);
   const [ resizeDir, setResizeDir ] = useState<Direction>();
+  const [ boundCorrection, setBoundCorrection ] = useState<Dimensions>(
+    DEFAULT_DIMENSIONS
+  );
+  const MIN_SIZE: number = 15;
 
   /**
    * Allow element to be resized when "mousedown" event is
@@ -52,6 +56,7 @@ function ElementHandles({
   // Stop resizing if mousedown released outside of element
   useEventListener("mouseup", (): void => {
     setResizing(false);
+    setBoundCorrection(DEFAULT_DIMENSIONS);
     // Show editor after stopping resizing
     hideEditor(false);
   });
@@ -61,64 +66,121 @@ function ElementHandles({
     if (resizing) {
       // Hide editor while resizing element
       hideEditor(true);
-
-      const X_BOUND: number = resizeBounds.current?.clientWidth ?? 0;
-      const Y_BOUND: number = resizeBounds.current?.clientHeight ?? 0;
+      // Set element size
+      const MAX_HEIGHT: number = resizeBounds.current?.clientHeight ?? 0;
+      const MAX_WIDTH: number = resizeBounds.current?.clientWidth ?? 0;
       setSize((prevSize: Dimensions): Dimensions => {
-        let newSize: Dimensions = {
+        const NEW_SIZE: Dimensions = {
           height: prevSize.height,
           width: prevSize.width
         };
+        // Move element if necessary when resizing since position is top left of element
         setPosition((prevPos: Coordinates): Coordinates => {
-          let newPos: Coordinates = {
+          const NEW_POS: Coordinates = {
             x: prevPos.x,
             y: prevPos.y
           };
           switch (resizeDir) {
             case Direction.NW:
-              newSize.height -= mouseDelta.y;
-              newSize.width -= mouseDelta.x;
-              newPos.x += mouseDelta.x / 2;
-              newPos.y += mouseDelta.y / 2;
+              NEW_SIZE.height -= mouseDelta.y;
+              NEW_SIZE.width -= mouseDelta.x;
+              if (NEW_SIZE.height > MIN_SIZE && boundCorrection.height == 0) {
+                NEW_POS.y += mouseDelta.y / 2;
+              }
+              if (NEW_SIZE.width > MIN_SIZE && boundCorrection.width == 0) {
+                NEW_POS.x += mouseDelta.x / 2;
+              }
               break;
             case Direction.N:
-              newSize.height -= mouseDelta.y;
-              newPos.y += mouseDelta.y / 2;
+              NEW_SIZE.height -= mouseDelta.y;
+              if (NEW_SIZE.height > MIN_SIZE && boundCorrection.height == 0) {
+                NEW_POS.y += mouseDelta.y / 2;
+              }
               break;
             case Direction.NE:
-              newSize.height -= mouseDelta.y;
-              newSize.width += mouseDelta.x;
-              newPos.y += mouseDelta.y / 2;
+              NEW_SIZE.height -= mouseDelta.y;
+              NEW_SIZE.width += mouseDelta.x;
+              if (NEW_SIZE.height > MIN_SIZE && boundCorrection.height == 0) {
+                NEW_POS.y += mouseDelta.y / 2;
+              }
               break;
             case Direction.W:
-              newSize.width -= mouseDelta.x;
-              newPos.x += mouseDelta.x / 2;
+              NEW_SIZE.width -= mouseDelta.x;
+              if (NEW_SIZE.width > MIN_SIZE && boundCorrection.width == 0) {
+                NEW_POS.x += mouseDelta.x / 2;
+              }
               break;
             case Direction.E:
-              newSize.width += mouseDelta.x;
+              NEW_SIZE.width += mouseDelta.x;
               break;
             case Direction.SW:
-              newSize.height += mouseDelta.y;
-              newSize.width -= mouseDelta.x;
-              newPos.x += mouseDelta.x / 2;
+              NEW_SIZE.height += mouseDelta.y;
+              NEW_SIZE.width -= mouseDelta.x;
+              if (NEW_SIZE.width > MIN_SIZE && boundCorrection.width == 0) {
+                NEW_POS.x += mouseDelta.x / 2;
+              }
               break;
             case Direction.S:
-              newSize.height += mouseDelta.y;
+              NEW_SIZE.height += mouseDelta.y;
               break;
             case Direction.SE:
-              newSize.height += mouseDelta.y;
-              newSize.width += mouseDelta.x;
+              NEW_SIZE.height += mouseDelta.y;
+              NEW_SIZE.width += mouseDelta.x;
           }
-          newSize = {
-            height: clamp(newSize.height, 1, Y_BOUND, newSize.height),
-            width: clamp(newSize.width, 1, X_BOUND, newSize.width)
-          };
-          return {
-            x: clamp(newPos.x, 0, X_BOUND, prevSize.width),
-            y: clamp(newPos.y, 0, Y_BOUND, prevSize.height)
-          };
+          NEW_POS.x = clamp(NEW_POS.x, 0, MAX_WIDTH, NEW_SIZE.width - NEW_SIZE.width / 2);
+          NEW_POS.y = clamp(NEW_POS.y, 0, MAX_HEIGHT, NEW_SIZE.height - NEW_SIZE.height / 2);
+          // Correct mouse position to resize handle when resizing outside of bounded area
+          let correctedHeight: number = boundCorrection.height != 0
+            ? prevSize.height
+            : NEW_SIZE.height;
+          let correctedWidth: number = boundCorrection.width != 0
+            ? prevSize.width
+            : NEW_SIZE.width;
+          setBoundCorrection((prevBC: Dimensions): Dimensions => {
+            const NEW_BC_STATE: Dimensions = {
+              height: NEW_SIZE.height < MIN_SIZE ||
+                  NEW_POS.y <= 0 && (
+                    resizeDir === Direction.NW ||
+                    resizeDir === Direction.N ||
+                    resizeDir === Direction.NE) ||
+                  NEW_SIZE.height + NEW_POS.y > MAX_HEIGHT && (
+                    resizeDir === Direction.SW ||
+                    resizeDir === Direction.S ||
+                    resizeDir === Direction.SE) ||
+                  prevBC.height != 0
+                ? prevBC.height + mouseDelta.y
+                : prevBC.height,
+              width: NEW_SIZE.width < MIN_SIZE ||
+                  NEW_POS.x <= 0 && (
+                    resizeDir === Direction.NW ||
+                    resizeDir === Direction.W ||
+                    resizeDir === Direction.SW) ||
+                  NEW_SIZE.width + NEW_POS.x > MAX_WIDTH &&
+                    (resizeDir === Direction.NE ||
+                    resizeDir === Direction.E ||
+                    resizeDir === Direction.SE) ||
+                  prevBC.width != 0
+                ? prevBC.width + mouseDelta.x
+                : prevBC.width
+            };
+            // When mouse returns to bounded area
+            if (prevBC.height < 0 && NEW_BC_STATE.height > 0 ||
+                prevBC.height > 0 && NEW_BC_STATE.height < 0) {
+              correctedHeight += NEW_BC_STATE.height;
+              NEW_BC_STATE.height = 0;
+            }
+            if (prevBC.width < 0 && NEW_BC_STATE.width > 0 ||
+                prevBC.width > 0 && NEW_BC_STATE.width < 0) {
+              correctedWidth += NEW_BC_STATE.width;
+              NEW_BC_STATE.width = 0;
+            }
+            return NEW_BC_STATE;
+          });
+          NEW_SIZE.height = clamp(correctedHeight, MIN_SIZE, MAX_HEIGHT, NEW_POS.y);
+          NEW_SIZE.width = clamp(correctedWidth, MIN_SIZE, MAX_WIDTH, NEW_POS.x);
+          return NEW_POS;
         });
-        return newSize;
+        return NEW_SIZE;
       });
     }
   }, [ mouseDelta ]);
@@ -232,7 +294,7 @@ export default function ResumeElement({
   );
   const [ size, setSize ] = useState<Dimensions>(item.size);
   const [ , mouseDelta ] = useMousePosition();
-  const showContextMenu = useContext(ContextMenuContext);
+  const showContextMenu = useContext<DisplayContextMenuFn>(ContextMenuContext);
   const { editingItem, editItem, hideEditor } = useContext<EditorState>(EditorContext);
 
   /**
@@ -295,43 +357,40 @@ export default function ResumeElement({
     if (dragging) {
       // Hide editor while dragging element
       hideEditor(true);
-
+      // Update element position
       const X_BOUND: number = dragBounds?.current?.clientWidth ?? 0;
       const Y_BOUND: number = dragBounds?.current?.clientHeight ?? 0;
-      
-      // Update element position
       setPosition((prevPos: Coordinates): Coordinates => {
+        // Correct mouse position to initial drag point when dragging outside of draggable area
         const NEW_X: number = prevPos.x + mouseDelta.x;
         const NEW_Y: number = prevPos.y + mouseDelta.y;
-        let correctedXPos = boundCorrection.x != 0
+        let correctedXPos: number = boundCorrection.x != 0
           ? prevPos.x
           : NEW_X;
-        let correctedYPos = boundCorrection.y != 0
+        let correctedYPos: number = boundCorrection.y != 0
           ? prevPos.y
           : NEW_Y;
-
-        // Correct mouse position to initial drag point when dragging outside of draggable area
         setBoundCorrection((prevBC: Coordinates): Coordinates => {
-          let newBCState: Coordinates = {
+          const NEW_BC_STATE: Coordinates = {
             x: NEW_X < 0 || NEW_X > X_BOUND - size.width || prevBC.x != 0
               ? prevBC.x + mouseDelta.x
               : prevBC.x,
             y: NEW_Y < 0 || NEW_Y > Y_BOUND - size.height || prevBC.y != 0
               ? prevBC.y + mouseDelta.y
               : prevBC.y
-          }
+          };
           // When mouse returns to draggable area
-          if (prevBC.x < 0 && newBCState.x > 0 ||
-              prevBC.x > 0 && newBCState.x < 0) {
-            correctedXPos += newBCState.x;
-            newBCState.x = 0;
+          if (prevBC.x < 0 && NEW_BC_STATE.x > 0 ||
+              prevBC.x > 0 && NEW_BC_STATE.x < 0) {
+            correctedXPos += NEW_BC_STATE.x;
+            NEW_BC_STATE.x = 0;
           }
-          if (prevBC.y < 0 && newBCState.y > 0 ||
-              prevBC.y > 0 && newBCState.y < 0) {
-            correctedYPos += newBCState.y;
-            newBCState.y = 0;
+          if (prevBC.y < 0 && NEW_BC_STATE.y > 0 ||
+              prevBC.y > 0 && NEW_BC_STATE.y < 0) {
+            correctedYPos += NEW_BC_STATE.y;
+            NEW_BC_STATE.y = 0;
           }
-          return newBCState;
+          return NEW_BC_STATE;
         });
         return {
           x: clamp(correctedXPos, 0, X_BOUND, size.width),
