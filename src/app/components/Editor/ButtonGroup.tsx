@@ -1,4 +1,4 @@
-import { Button, ButtonGroup as HeroUIButtonGroup, PressEvent } from "@heroui/react";
+import { Button, ButtonGroup as HeroUIButtonGroup, type PressEvent } from "@heroui/react";
 import { useEffect, useState } from "react";
 
 type Button = {

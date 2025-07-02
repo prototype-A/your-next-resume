@@ -34,11 +34,13 @@ export default function useLocalStorageState<T>(key: string, initialState: T): U
   }
 
   /**
-   * Sets the state currently stored in localStorage 
-   * back to `initialState`.
+   * Sets `key` to `initialState` and removes the
+   * data stored under `key` from localStorage.
    */
   function clearState(): void {
+    // Set empty state
     updateState(initialState);
+    // Remove from localStorage entirely (after resetting and storing emptystate)
     removeItem(key);
   }
 
@@ -48,7 +50,7 @@ export default function useLocalStorageState<T>(key: string, initialState: T): U
     if (!loadedFromLocalStorage) {
       updateState(getItemAsJson(key) ?? initialState);
     }
-    return () => { loadedFromLocalStorage = true; }
+    return (): void => { loadedFromLocalStorage = true; }
   }, []);
 
   return [ state, updateState, clearState ];
