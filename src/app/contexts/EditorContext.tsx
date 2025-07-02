@@ -63,9 +63,7 @@ export function EditorContextProvider({
           setEditingField(null);
           setVisible(item ? true : false);
         },
-        hideEditor: (): ((hide: boolean) => void) => (hide: boolean): void => !hide && editingItem
-          ? setVisible(true)
-          : setVisible(false),
+        hideEditor: (hide: boolean): void => setVisible(!hide),
         setEditingField: setEditingField,
         updateField: (formatting: TextFormatting): void => {
           if (editingField) {
