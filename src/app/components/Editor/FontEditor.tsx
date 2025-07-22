@@ -1,4 +1,4 @@
-import { Autocomplete, AutocompleteItem, AutocompleteSection, Card, CardBody, NumberInput } from "@heroui/react";
+import { Autocomplete, AutocompleteItem, AutocompleteSection, NumberInput } from "@heroui/react";
 import { useContext } from "react";
 import ButtonGroup from "./ButtonGroup";
 import { FlexRowDiv, VSpacedDiv } from "../Containers";
@@ -113,161 +113,154 @@ export default function FontEditor(): React.ReactNode {
   }
   
   return (
-    <Card
-      className="editor-panel"
-      radius="sm"
-    >
-      <CardBody>
-        <VSpacedDiv>
-          <FlexRowDiv>
-            <Autocomplete
-              className="basis-4/5"
-              isClearable={ false }
-              isDisabled={ editingField === null }
-              label="Font"
-              menuTrigger="input"
-              onInputChange={(newValue: string): void => {
-                if (newValue in DEFAULT_FONT_LIST) {
-                  updateItem(setNestedValue(editingItem, editingField + ".font", newValue));
+    <VSpacedDiv>
+      <FlexRowDiv>
+        <Autocomplete
+          className="basis-4/5"
+          isClearable={ false }
+          isDisabled={ editingField === null }
+          label="Font"
+          menuTrigger="input"
+          onInputChange={(newValue: string): void => {
+            if (newValue in DEFAULT_FONT_LIST) {
+              updateItem(setNestedValue(editingItem, editingField + ".font", newValue));
+            }
+          }}
+          onSelectionChange={(key: React.Key | null): void => {
+            if (editingField && key !== "$.1") {
+              updateItem(setNestedValue(editingItem, editingField + ".font", key));
+            }
+          }}
+          radius="sm"
+          selectedKey={ getCurrentTextFormatting()?.font ?? null }
+        >
+          <AutocompleteSection
+            items={ BASE_FONTS }
+            title="Default Fonts"
+          >
+            { getAutocompleteItem }
+          </AutocompleteSection>
+        </Autocomplete>
+        <NumberInput
+          className="basis-1/5"
+          classNames={{
+            input: "text"
+          }}
+          formatOptions={{
+            maximumFractionDigits: 0
+          }}
+          isDisabled={ editingField === null }
+          isWheelDisabled
+          label="Size"
+          minValue={ 1 }
+          onValueChange={(newValue: number): void => {
+            const INPUT: number = !isNaN(newValue) && newValue > 0
+              ? newValue
+              : DEFAULT_FONT_SIZE;
+            if (editingField) {
+              updateItem(setNestedValue(editingItem, editingField + ".size", INPUT));
+            }
+          }}
+          radius="sm"
+          value={ getCurrentTextFormatting()?.size ?? DEFAULT_FONT_SIZE }
+        />
+      </FlexRowDiv>
+      <FlexRowDiv className="justify-center">
+        <ButtonGroup
+          buttons={[
+            {
+              onPress: (): void => {
+                const FORMATTING: TextFormatting | undefined = getCurrentTextFormatting();
+                if (FORMATTING) {
+                  updateField({
+                    ...FORMATTING,
+                    style: toggleStyle(FORMATTING.style, "U")
+                  });
                 }
-              }}
-              onSelectionChange={(key: React.Key | null): void => {
-                if (editingField && key !== "$.1") {
-                  updateItem(setNestedValue(editingItem, editingField + ".font", key));
+              },
+              pressed: hasStyle("U"),
+              text: "U̲"
+            },
+            {
+              onPress: (): void => {
+                const FORMATTING: TextFormatting | undefined = getCurrentTextFormatting();
+                if (FORMATTING) {
+                  updateField({
+                    ...FORMATTING,
+                    style: toggleStyle(FORMATTING.style, "S")
+                  });
                 }
-              }}
-              radius="sm"
-              selectedKey={ getCurrentTextFormatting()?.font ?? undefined }
-            >
-              <AutocompleteSection
-                items={ BASE_FONTS }
-                title="Default Fonts"
-              >
-                { getAutocompleteItem }
-              </AutocompleteSection>
-            </Autocomplete>
-            <NumberInput
-              className="basis-1/5"
-              classNames={{
-                input: "text"
-              }}
-              formatOptions={{
-                maximumFractionDigits: 0
-              }}
-              isDisabled={ editingField === null }
-              isWheelDisabled
-              label="Size"
-              minValue={ 1 }
-              onValueChange={(newValue: number): void => {
-                const INPUT: number = !isNaN(newValue) && newValue > 0
-                  ? newValue
-                  : DEFAULT_FONT_SIZE;
-                if (editingField) {
-                  updateItem(setNestedValue(editingItem, editingField + ".size", INPUT));
+              },
+              pressed: hasStyle("S"),
+              text: "S̶"
+            }
+          ]}
+          disableRipple
+          isDisabled={ editingField === null }
+          isIconOnly
+        />
+        <ButtonGroup
+          buttons={[
+            {
+              onPress: (): void => {
+                const FORMATTING: TextFormatting | undefined = getCurrentTextFormatting();
+                if (FORMATTING) {
+                  updateField({
+                    ...FORMATTING,
+                    hAlign: "left"
+                  });
                 }
-              }}
-              radius="sm"
-              value={ getCurrentTextFormatting()?.size ?? 1 }
-            />
-          </FlexRowDiv>
-          <FlexRowDiv className="justify-center">
-            <ButtonGroup
-              buttons={[
-                {
-                  onPress: (): void => {
-                    const FORMATTING: TextFormatting | undefined = getCurrentTextFormatting();
-                    if (FORMATTING) {
-                      updateField({
-                        ...FORMATTING,
-                        style: toggleStyle(FORMATTING.style, "U")
-                      });
-                    }
-                  },
-                  pressed: hasStyle("U"),
-                  text: "U̲"
-                },
-                {
-                  onPress: (): void => {
-                    const FORMATTING: TextFormatting | undefined = getCurrentTextFormatting();
-                    if (FORMATTING) {
-                      updateField({
-                        ...FORMATTING,
-                        style: toggleStyle(FORMATTING.style, "S")
-                      });
-                    }
-                  },
-                  pressed: hasStyle("S"),
-                  text: "S̶"
+              },
+              pressed: isAligned("left"),
+              text: "L"
+            },
+            {
+              onPress: (): void => {
+                const FORMATTING: TextFormatting | undefined = getCurrentTextFormatting();
+                if (FORMATTING) {
+                  updateField({
+                    ...FORMATTING,
+                    hAlign: "center"
+                  });
                 }
-              ]}
-              disableRipple
-              isDisabled={ editingField === null }
-              isIconOnly
-            />
-            <ButtonGroup
-              buttons={[
-                {
-                  onPress: (): void => {
-                    const FORMATTING: TextFormatting | undefined = getCurrentTextFormatting();
-                    if (FORMATTING) {
-                      updateField({
-                        ...FORMATTING,
-                        hAlign: "left"
-                      });
-                    }
-                  },
-                  pressed: isAligned("left"),
-                  text: "L"
-                },
-                {
-                  onPress: (): void => {
-                    const FORMATTING: TextFormatting | undefined = getCurrentTextFormatting();
-                    if (FORMATTING) {
-                      updateField({
-                        ...FORMATTING,
-                        hAlign: "center"
-                      });
-                    }
-                  },
-                  pressed: isAligned("center"),
-                  text: "C"
-                },
-                {
-                  onPress: (): void => {
-                    const FORMATTING: TextFormatting | undefined = getCurrentTextFormatting();
-                    if (FORMATTING) {
-                      updateField({
-                        ...FORMATTING,
-                        hAlign: "right"
-                      });
-                    }
-                  },
-                  pressed: isAligned("right"),
-                  text: "R"
-                },
-                {
-                  onPress: (): void => {
-                    const FORMATTING: TextFormatting | undefined = getCurrentTextFormatting();
-                    if (FORMATTING) {
-                      updateField({
-                        ...FORMATTING,
-                        hAlign: "justify"
-                      });
-                    }
-                  },
-                  pressed: isAligned("justify"),
-                  text: "J"
+              },
+              pressed: isAligned("center"),
+              text: "C"
+            },
+            {
+              onPress: (): void => {
+                const FORMATTING: TextFormatting | undefined = getCurrentTextFormatting();
+                if (FORMATTING) {
+                  updateField({
+                    ...FORMATTING,
+                    hAlign: "right"
+                  });
                 }
-              ]}
-              canDeselect={ false }
-              disableRipple
-              isDisabled={ editingField === null }
-              isIconOnly
-              isRadioGroup
-            />
-          </FlexRowDiv>
-        </VSpacedDiv>
-      </CardBody>
-    </Card>
+              },
+              pressed: isAligned("right"),
+              text: "R"
+            },
+            {
+              onPress: (): void => {
+                const FORMATTING: TextFormatting | undefined = getCurrentTextFormatting();
+                if (FORMATTING) {
+                  updateField({
+                    ...FORMATTING,
+                    hAlign: "justify"
+                  });
+                }
+              },
+              pressed: isAligned("justify"),
+              text: "J"
+            }
+          ]}
+          canDeselect={ false }
+          disableRipple
+          isDisabled={ editingField === null }
+          isIconOnly
+          isRadioGroup
+        />
+      </FlexRowDiv>
+    </VSpacedDiv>
   );
 }
