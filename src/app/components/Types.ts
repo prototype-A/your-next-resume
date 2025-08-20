@@ -47,7 +47,7 @@ export const RESUME_ITEM_TYPES = [
   "Text"
 ] as const;
 export type ResumeItemType = typeof RESUME_ITEM_TYPES[number];
-type ResumeItemDateRange = {
+export type ResumeItemDateRange = {
   startDate: string,
   endDate: string
 } & TextFormatting;

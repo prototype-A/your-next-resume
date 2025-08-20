@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import type { Coordinates, Dimensions, Ref, ResumeItem, SetStateFn, TextFormatting, TextList } from "./Types";
+import type { Coordinates, Dimensions, Ref, ResumeItem, ResumeItemDateRange, SetStateFn, TextFormatting, TextList } from "./Types";
 import { DEFAULT_COORDINATES, DEFAULT_DIMENSIONS, RESUME_ITEM_TEXT_CONTENT_TYPES, RESUME_ITEM_TYPES } from "./Types";
 import { ContextMenuContext, type DisplayContextMenuFn } from "../contexts/ContextMenuContext";
 import { EditorContext, type EditorState } from "../contexts/EditorContext";
@@ -10,6 +10,7 @@ import { optionalPrefix } from "../utils/StringUtils";
 import "../styles/globals.css";
 import "../styles/page.css";
 import "../styles/resume-element.css";
+import { formatGPAText, formatPeriodText } from "../utils/FormattingUtils";
 
 type ElementResizeProps = {
   hideEditor: (hide: boolean) => void,
@@ -255,18 +256,16 @@ function ElementHandles({
 }
 
 type DateRangeProps = {
-  endDate?: string,
-  startDate: string,
-  style?: React.CSSProperties
+  period: ResumeItemDateRange,
+  style: React.CSSProperties
 };
 
 const DateRange = ({
-  endDate = "",
-  startDate,
+  period,
   style
 }: DateRangeProps): React.ReactNode => (
   <div style={ style }>
-    { startDate + optionalPrefix(" - ", endDate) }
+    { formatPeriodText(period) }
   </div>
 );
 
@@ -481,15 +480,11 @@ export default function ResumeElement({
             { optionalPrefix("Minor: ", item.content.minor.text) }
           </div>
           <DateRange
-            endDate={ item.content.period.endDate }
-            startDate={ item.content.period.startDate }
+            period={ item.content.period }
             style={ getCSSProperties(item.content.period) }
           />
           <div style={ getCSSProperties(item.content.body) }>
-            { Number(item.content.gpa.text) > 0
-              ? optionalPrefix("GPA: ", item.content.gpa.text)
-              : ""
-            }
+            { formatGPAText(item.content.gpa) }
           </div>
           { displayTextList(item.content.body) }
         </div>
@@ -507,8 +502,7 @@ export default function ResumeElement({
             { item.content.location.text }
           </div>
           <DateRange
-            endDate={ item.content.period.endDate }
-            startDate={ item.content.period.startDate }
+            period={ item.content.period }
             style={ getCSSProperties(item.content.period) }
           />
           { displayTextList(item.content.body) }
